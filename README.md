@@ -28,6 +28,23 @@ cmake --build build -j$(nproc)
 ./build/camera_connector /path/to/video.mp4
 ```
 
+## Docker
+
+```bash
+# Build
+docker build -f docker/Dockerfile -t camera-connector .
+
+# Run (webcam index 0)
+docker run --rm --device /dev/video0 camera-connector
+
+# RTSP
+docker run --rm camera-connector /app/camera_connector rtsp://user:pass@cam/stream
+
+# File
+docker run --rm -v /path/to/video.mp4:/media/sample.mp4:ro \
+  camera-connector /app/camera_connector /media/sample.mp4
+```
+
 ## Integration
 
 The `camera::FrameQueue` (or a `FrameSink` callback) is the contract toward

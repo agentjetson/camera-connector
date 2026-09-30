@@ -1,4 +1,5 @@
 .vscode/
+.idea/
 build/
 docker/
 .git/
@@ -9,3 +10,9 @@ docker/
 **/cmake_install.cmake
 **/Makefile
 **/compile_commands.json
+*.onnx
+models/
+media/
+*.mp4
+*.avi
+*.mkv

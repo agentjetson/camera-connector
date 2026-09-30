@@ -1,0 +1,28 @@
+# Local / edge bring-up for camera-connector
+# Mirrors the style used by alpr-consumer + core specialists.
+
+services:
+  camera-connector:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    # Pass source as command override, e.g.:
+    #   command: ["/app/camera_connector", "rtsp://user:pass@cam/stream"]
+    #   command: ["/app/camera_connector", "/dev/video0", "1280", "720"]
+    #   command: ["/app/camera_connector", "/media/sample.mp4"]
+    command: ["/app/camera_connector", "0"]
+    environment:
+      # Reserved for future NATS / gRPC FrameEnvelope publisher
+      # NATS_URL: nats://nats:4222
+      SPDLOG_LEVEL: info
+    # Host camera access (V4L2)
+    devices:
+      - /dev/video0:/dev/video0
+    # Optional: privileged if your host needs broader device access
+    # privileged: true
+    # Optional sample / media mount
+    # volumes:
+    #   - ./media:/media:ro
+    restart: unless-stopped
+    # networks:
+    #   - default   # join core stack network when used with agentjetson/core

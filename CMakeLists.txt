@@ -7,6 +7,10 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 find_package(Threads REQUIRED)
 find_package(OpenCV REQUIRED COMPONENTS core imgproc videoio)
+if(OpenCV_VERSION VERSION_LESS "5.0")
+  message(FATAL_ERROR "OpenCV ≥ 5.0 required (found ${OpenCV_VERSION})")
+endif()
+message(STATUS "OpenCV ${OpenCV_VERSION} at ${OpenCV_DIR}")
 
 include(FetchContent)
 find_package(spdlog QUIET)
