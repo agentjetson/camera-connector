@@ -7,11 +7,17 @@ services:
       context: .
       dockerfile: docker/Dockerfile
     # Pass source as command override, e.g.:
+    #   command: ["/app/camera_connector", "--publish", "/app/sample.mp4"]
     #   command: ["/app/camera_connector", "rtsp://user:pass@cam/stream"]
     #   command: ["/app/camera_connector", "/dev/video0", "1280", "720"]
     #   command: ["/app/camera_connector", "/media/sample.mp4"]
     command: ["/app/camera_connector", "0"]
+    # Host network so object-classifier on the same host can reach :50060
+    network_mode: host
     environment:
+      FRAME_GRPC_ADDR: "0.0.0.0:50060"
+      FRAME_ENCODING: jpeg
+      FRAME_JPEG_QUALITY: "80"
       # Reserved for future NATS / gRPC FrameEnvelope publisher
       # NATS_URL: nats://nats:4222
       SPDLOG_LEVEL: info
@@ -22,7 +28,7 @@ services:
     # privileged: true
     # Optional sample / media mount
     # volumes:
-    #   - ./media:/media:ro
+    #   - ./sample.mp4:/app/sample.mp4:ro
     restart: unless-stopped
     # networks:
     #   - default   # join core stack network when used with agentjetson/core
