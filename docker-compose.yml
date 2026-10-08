@@ -30,5 +30,3 @@ services:
     # volumes:
     #   - ./sample.mp4:/app/sample.mp4:ro
     restart: unless-stopped
-    # networks:
-    #   - default   # join core stack network when used with agentjetson/core

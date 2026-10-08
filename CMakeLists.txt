@@ -89,11 +89,11 @@ if(_PROTO_INCLUDE_PATH)
 endif()
 
 # ---------------------------------------------------------------------------
-# Canonical protos from agentjetson/contract (no private proto/ copy)
+# Canonical protos from agentjetson/core (no private proto/ copy)
 # ---------------------------------------------------------------------------
-set(AGENTJETSON_CONTRACT_GIT_TAG main CACHE STRING "agentjetson/contract ref for protos")
+set(AGENTJETSON_CONTRACT_GIT_TAG main CACHE STRING "agentjetson/core ref for protos")
 FetchContent_Declare(agentjetson_contract
-  GIT_REPOSITORY https://github.com/agentjetson/contract.git
+  GIT_REPOSITORY https://github.com/agentjetson/core.git
   GIT_TAG ${AGENTJETSON_CONTRACT_GIT_TAG}
   GIT_SHALLOW TRUE)
 FetchContent_GetProperties(agentjetson_contract)
@@ -188,4 +188,4 @@ add_executable(camera_connector src/main.cpp)
 target_link_libraries(camera_connector PRIVATE camera_publish camera_capture)
 
 message(STATUS "camera-connector configured (local + --publish network path)")
-message(STATUS "  Protos: agentjetson/contract (${AGENTJETSON_CONTRACT_GIT_TAG})")
+message(STATUS "  Protos: agentjetson/core (${AGENTJETSON_CONTRACT_GIT_TAG})")
