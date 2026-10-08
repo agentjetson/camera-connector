@@ -89,9 +89,18 @@ if(_PROTO_INCLUDE_PATH)
 endif()
 
 # ---------------------------------------------------------------------------
-# Protos (frame + FrameService)
+# Canonical protos from agentjetson/contract (no private proto/ copy)
 # ---------------------------------------------------------------------------
-set(PROTO_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/proto)
+set(AGENTJETSON_CONTRACT_GIT_TAG main CACHE STRING "agentjetson/contract ref for protos")
+FetchContent_Declare(agentjetson_contract
+  GIT_REPOSITORY https://github.com/agentjetson/contract.git
+  GIT_TAG ${AGENTJETSON_CONTRACT_GIT_TAG}
+  GIT_SHALLOW TRUE)
+FetchContent_GetProperties(agentjetson_contract)
+if(NOT agentjetson_contract_POPULATED)
+  FetchContent_Populate(agentjetson_contract)
+endif()
+set(PROTO_ROOT ${agentjetson_contract_SOURCE_DIR}/proto)
 set(PROTO_GEN_DIR ${CMAKE_CURRENT_BINARY_DIR}/generated)
 file(MAKE_DIRECTORY ${PROTO_GEN_DIR})
 
@@ -179,3 +188,4 @@ add_executable(camera_connector src/main.cpp)
 target_link_libraries(camera_connector PRIVATE camera_publish camera_capture)
 
 message(STATUS "camera-connector configured (local + --publish network path)")
+message(STATUS "  Protos: agentjetson/contract (${AGENTJETSON_CONTRACT_GIT_TAG})")
