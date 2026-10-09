@@ -8,18 +8,22 @@ services:
       dockerfile: docker/Dockerfile
     # Pass source as command override, e.g.:
     #   command: ["/app/camera_connector", "--publish", "/app/sample.mp4"]
-    #   command: ["/app/camera_connector", "rtsp://user:pass@cam/stream"]
+    #   command: ["/app/camera_connector", "--ingest", "0"]
+    #   command: ["/app/camera_connector", "--publish", "--ingest", "rtsp://user:pass@cam/stream"]
     #   command: ["/app/camera_connector", "/dev/video0", "1280", "720"]
     #   command: ["/app/camera_connector", "/media/sample.mp4"]
     command: ["/app/camera_connector", "0"]
-    # Host network so object-classifier on the same host can reach :50060
+    # Host network so object-classifier / object-storage on the same host are reachable
     network_mode: host
     environment:
       FRAME_GRPC_ADDR: "0.0.0.0:50060"
       FRAME_ENCODING: jpeg
       FRAME_JPEG_QUALITY: "80"
-      # Reserved for future NATS / gRPC FrameEnvelope publisher
-      # NATS_URL: nats://nats:4222
+      # Ingest → core object-storage (RustFS-backed)
+      # INGEST: "true"
+      # OBJECT_STORAGE_HTTP: "http://127.0.0.1:8081"
+      # INGEST_SEGMENT_SEC: "30"
+      # INGEST_SOURCE: "cam-0"
       SPDLOG_LEVEL: info
     # Host camera access (V4L2)
     devices:

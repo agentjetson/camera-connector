@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(camera_connector VERSION 0.2.0 LANGUAGES CXX)
+project(camera_connector VERSION 0.3.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -182,10 +182,27 @@ target_link_libraries(camera_publish PUBLIC
 )
 
 # ---------------------------------------------------------------------------
+# Ingest sink (rolling MP4 → object-storage HTTP → RustFS)
+# ---------------------------------------------------------------------------
+add_library(camera_ingest
+  src/ingest/ingest.cpp
+)
+target_include_directories(camera_ingest PUBLIC
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/include
+  ${OpenCV_INCLUDE_DIRS}
+)
+target_link_libraries(camera_ingest PUBLIC
+  camera_capture
+  ${OpenCV_LIBS}
+  spdlog::spdlog
+  Threads::Threads
+)
+
+# ---------------------------------------------------------------------------
 # Executable
 # ---------------------------------------------------------------------------
 add_executable(camera_connector src/main.cpp)
-target_link_libraries(camera_connector PRIVATE camera_publish camera_capture)
+target_link_libraries(camera_connector PRIVATE camera_publish camera_capture camera_ingest)
 
-message(STATUS "camera-connector configured (local + --publish network path)")
+message(STATUS "camera-connector configured (local + --publish + --ingest)")
 message(STATUS "  Protos: agentjetson/core (${AGENTJETSON_CONTRACT_GIT_TAG})")
