@@ -1,7 +1,9 @@
 #include "ingest.hpp"
 
+#include <opencv2/imgproc.hpp>
 #include <spdlog/spdlog.h>
 
+#include <cctype>
 #include <cstdio>
 #include <cstdlib>
 #include <fstream>
