@@ -19,7 +19,10 @@ RUN rm -rf build CMakeCache.txt CMakeFiles \
 FROM agentjetsonai/gecko
 ENV DEBIAN_FRONTEND=noninteractive
 
-RUN apt-get update && rm -rf /var/lib/apt/lists/*
+# curl is required for --ingest HTTP uploads to object-storage
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        curl \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /src/build/camera_connector /app/camera_connector
 
