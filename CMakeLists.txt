@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(camera_connector VERSION 0.2.0 LANGUAGES CXX)
+project(camera_connector VERSION 0.2.1 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -9,19 +9,35 @@ find_package(Threads REQUIRED)
 find_package(PkgConfig REQUIRED)
 find_package(OpenCV REQUIRED COMPONENTS core imgproc imgcodecs videoio)
 if(OpenCV_VERSION VERSION_LESS "5.0")
-  message(FATAL_ERROR "OpenCV ≥ 5.0 required (found ${OpenCV_VERSION})")
+  message(FATAL_ERROR "OpenCV >= 5.0 required (found ${OpenCV_VERSION})")
 endif()
 message(STATUS "OpenCV ${OpenCV_VERSION} at ${OpenCV_DIR}")
 
 include(FetchContent)
+
+# ---------------------------------------------------------------------------
+# aj-edge-common (OTEL, env, signal helpers)
+# ---------------------------------------------------------------------------
+set(AJ_EDGE_COMMON_GIT_TAG feat/env-truthy-signal CACHE STRING "agentjetson/edge-common ref")
+FetchContent_Declare(aj_edge_common
+  GIT_REPOSITORY https://github.com/agentjetson/edge-common.git
+  GIT_TAG ${AJ_EDGE_COMMON_GIT_TAG}
+  GIT_SHALLOW TRUE)
+set(AJ_EDGE_WITH_OTEL ON CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(aj_edge_common)
+
 find_package(spdlog QUIET)
 if(NOT spdlog_FOUND)
-  FetchContent_Declare(spdlog
-    GIT_REPOSITORY https://github.com/gabime/spdlog.git
-    GIT_TAG v1.17.0 GIT_SHALLOW TRUE)
-  set(SPDLOG_BUILD_EXAMPLE OFF CACHE BOOL "" FORCE)
-  set(SPDLOG_BUILD_TESTS OFF CACHE BOOL "" FORCE)
-  FetchContent_MakeAvailable(spdlog)
+  if(TARGET spdlog::spdlog)
+    message(STATUS "spdlog via aj-edge-common")
+  else()
+    FetchContent_Declare(spdlog
+      GIT_REPOSITORY https://github.com/gabime/spdlog.git
+      GIT_TAG v1.17.0 GIT_SHALLOW TRUE)
+    set(SPDLOG_BUILD_EXAMPLE OFF CACHE BOOL "" FORCE)
+    set(SPDLOG_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+    FetchContent_MakeAvailable(spdlog)
+  endif()
 endif()
 
 # ---------------------------------------------------------------------------
@@ -185,7 +201,12 @@ target_link_libraries(camera_publish PUBLIC
 # Executable
 # ---------------------------------------------------------------------------
 add_executable(camera_connector src/main.cpp)
-target_link_libraries(camera_connector PRIVATE camera_publish camera_capture)
+target_link_libraries(camera_connector PRIVATE
+  camera_publish
+  camera_capture
+  aj::edge_common
+)
 
 message(STATUS "camera-connector configured (local + --publish network path)")
 message(STATUS "  Protos: agentjetson/core (${AGENTJETSON_CONTRACT_GIT_TAG})")
+message(STATUS "  edge-common: ${AJ_EDGE_COMMON_GIT_TAG}")
