@@ -9,8 +9,10 @@
 #include "capture.hpp"
 #include "frame_publisher.hpp"
 
-#include <atomic>
-#include <csignal>
+#include <aj/edge/env.hpp>
+#include <aj/edge/otel.hpp>
+#include <aj/edge/signal.hpp>
+
 #include <cstdlib>
 #include <iostream>
 #include <string>
@@ -19,13 +21,6 @@
 #include <spdlog/spdlog.h>
 
 namespace {
-std::atomic<bool> g_running{true};
-void on_signal(int) { g_running = false; }
-
-std::string env_or(const char* key, const std::string& fallback) {
-  if (const char* v = std::getenv(key); v && *v) return v;
-  return fallback;
-}
 
 void print_usage(const char* argv0) {
   std::cerr
@@ -39,15 +34,21 @@ void print_usage(const char* argv0) {
       << "Environment:\n"
       << "  FRAME_GRPC_ADDR   listen address (default 0.0.0.0:50060)\n"
       << "  FRAME_ENCODING    jpeg | raw_bgr (default jpeg)\n"
-      << "  FRAME_JPEG_QUALITY 1-100 (default 80)\n";
+      << "  FRAME_JPEG_QUALITY 1-100 (default 80)\n"
+      << "  OTEL_EXPORTER_OTLP_ENDPOINT  collector (default localhost:4317)\n"
+      << "  OTEL_SERVICE_NAME            override service name\n";
 }
+
 }  // namespace
 
 int main(int argc, char** argv) {
-  spdlog::set_level(spdlog::level::info);
+  aj::edge::otel::init(
+      aj::edge::getenv_or("OTEL_SERVICE_NAME", "camera-connector"), "0.2.0");
+  aj::edge::install_stop_handlers();
 
   if (argc < 2) {
     print_usage(argv[0]);
+    aj::edge::otel::shutdown();
     return 1;
   }
 
@@ -59,6 +60,7 @@ int main(int argc, char** argv) {
   }
   if (argi >= argc) {
     print_usage(argv[0]);
+    aj::edge::otel::shutdown();
     return 1;
   }
 
@@ -67,18 +69,14 @@ int main(int argc, char** argv) {
   if (argi < argc) cap_cfg.target_width = std::stoi(argv[argi++]);
   if (argi < argc) cap_cfg.target_height = std::stoi(argv[argi++]);
 
-  std::signal(SIGINT, on_signal);
-  std::signal(SIGTERM, on_signal);
-
   auto queue = std::make_shared<camera::FrameQueue>(2);
   camera::Capture capture(cap_cfg, queue);
   capture.start();
 
   if (!publish) {
-    // ── Local demo sink ───────────────────────────────────────────────────
     spdlog::info("camera-connector [local] source={} – demo sink",
                  cap_cfg.source);
-    while (g_running && capture.is_running()) {
+    while (aj::edge::running() && capture.is_running()) {
       auto item = queue->pop(std::chrono::milliseconds(500));
       if (!item) continue;
       auto& [frame, meta] = *item;
@@ -89,25 +87,27 @@ int main(int argc, char** argv) {
     }
     capture.stop();
     spdlog::info("camera-connector stopped");
+    aj::edge::otel::shutdown();
     return 0;
   }
 
-  // ── Network path: gRPC FrameService ─────────────────────────────────────
+  // Network path: gRPC FrameService
   auto hub = std::make_shared<camera::FrameHub>();
 
   camera::FramePublisherServer::Config pub_cfg;
   pub_cfg.listen_addr =
-      env_or("FRAME_GRPC_ADDR", "0.0.0.0:50060");
+      aj::edge::getenv_or("FRAME_GRPC_ADDR", "0.0.0.0:50060");
   pub_cfg.default_encoding =
-      env_or("FRAME_ENCODING", "jpeg");
+      aj::edge::getenv_or("FRAME_ENCODING", "jpeg");
   pub_cfg.jpeg_quality =
-      std::stoi(env_or("FRAME_JPEG_QUALITY", "80"));
+      std::stoi(aj::edge::getenv_or("FRAME_JPEG_QUALITY", "80"));
 
   camera::FramePublisherServer server(pub_cfg, hub);
   server.start();
   if (!server.is_running()) {
     spdlog::error("failed to start FramePublisherServer");
     capture.stop();
+    aj::edge::otel::shutdown();
     return 1;
   }
 
@@ -116,7 +116,7 @@ int main(int argc, char** argv) {
       cap_cfg.source, pub_cfg.listen_addr, pub_cfg.default_encoding,
       pub_cfg.jpeg_quality);
 
-  while (g_running && capture.is_running()) {
+  while (aj::edge::running() && capture.is_running()) {
     auto item = queue->pop(std::chrono::milliseconds(500));
     if (!item) continue;
     auto& [frame, meta] = *item;
@@ -131,5 +131,6 @@ int main(int argc, char** argv) {
   server.stop();
   capture.stop();
   spdlog::info("camera-connector [publish] stopped");
+  aj::edge::otel::shutdown();
   return 0;
 }
